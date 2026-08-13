@@ -11,13 +11,13 @@ It's like having your own Mike Ross who instantly memorizes every document you g
 ## 📸 Screenshots
 
 ### The Chat Interface
-![AskDoc Chat Interface showing answer with sources](assets/chat-interface.png)
+<img src="assets/chat-interface.png" alt="AskDoc Chat Interface showing answer with sources" width="700" />
 
 ### The Document Sidebar
-![AskDoc Document Sidebar showing uploaded files](assets/document-sidebar.png)
+<img src="assets/document-sidebar.png" alt="AskDoc Document Sidebar showing uploaded files" width="300" />
 
 ### The Auth Gate
-![AskDoc Auth Gate screen](assets/Auth-gate.png)
+<img src="assets/Auth-gate.png" alt="AskDoc Auth Gate screen" width="700" />
 
 ---
 
