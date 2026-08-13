@@ -10,10 +10,14 @@ It's like having your own Mike Ross who instantly memorizes every document you g
 
 ## 📸 Screenshots
 
-*(Hey there! Please take the following screenshots and add them here to make the README pop:)*
-1. **The Chat Interface**: Showing a question and the AI's response with source citations.
-2. **The Document Sidebar**: Showing the list of uploaded documents and the "Upload" state.
-3. **The Auth Gate**: Showing the sleek "Unique Identifier" screen.
+### The Chat Interface
+![AskDoc Chat Interface showing answer with sources](assets/chat-interface.png)
+
+### The Document Sidebar
+![AskDoc Document Sidebar showing uploaded files](assets/document-sidebar.png)
+
+### The Auth Gate
+![AskDoc Auth Gate screen](assets/Auth-gate.png)
 
 ---
 
