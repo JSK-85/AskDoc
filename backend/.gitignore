@@ -1,0 +1,27 @@
+# FAISS index files
+data/faiss_index.bin
+data/faiss_meta.json
+data/faiss.lock
+
+# Uploaded files
+data/uploads/
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Uploads (legacy path)
+/tmp/rag_uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
