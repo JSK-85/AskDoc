@@ -23,6 +23,7 @@ class Document(Base):
     status:       Mapped[DocStatus] = mapped_column(Enum(DocStatus), default=DocStatus.PENDING)
     total_chunks: Mapped[int]       = mapped_column(Integer, default=0)
     file_path:    Mapped[str | None] = mapped_column(String(512), nullable=True)
+    md5_hash:     Mapped[str | None] = mapped_column(String(32), unique=True, index=True, nullable=True)
     pinned:       Mapped[bool]      = mapped_column(default=False)
     summary:      Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at:   Mapped[datetime]  = mapped_column(

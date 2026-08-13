@@ -84,7 +84,9 @@ export async function uploadDocument(file: File): Promise<IngestResponse> {
 }
 
 export async function getDocStatus(docId: number): Promise<Document> {
-  const res = await fetch(`${BASE}/api/v1/status/${docId}`);
+  const res = await fetch(`${BASE}/api/v1/status/${docId}`, {
+    headers: authHeaders(),
+  });
   if (!res.ok) throw new Error("Status check failed");
   return res.json();
 }
@@ -95,6 +97,7 @@ export async function listDocuments(
 ): Promise<Document[]> {
   const res = await fetch(
     `${BASE}/api/v1/documents?skip=${skip}&limit=${limit}`,
+    { headers: authHeaders() },
   );
   if (!res.ok) throw new Error("Failed to load documents");
   return res.json();
@@ -120,10 +123,74 @@ export async function queryDocument(
   return res.json();
 }
 
+export async function queryDocumentStream(
+  question: string,
+  docId: number | undefined,
+  onSources: (sources: any[]) => void,
+  onDelta: (text: string) => void,
+): Promise<void> {
+  const res = await fetch(`${BASE}/api/v1/query/stream`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ question, doc_id: docId ?? null }),
+  });
+
+  if (!res.ok) {
+    let detail = "Query stream failed";
+    try {
+      const err = await res.json();
+      detail = err.detail ?? detail;
+    } catch {}
+    throw new Error(detail);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    
+    // Parse SSE lines
+    const lines = buffer.split("\n\n");
+    // Keep the last partial chunk in the buffer
+    buffer = lines.pop() ?? "";
+
+    for (const block of lines) {
+      if (!block.trim()) continue;
+      
+      const eventMatch = block.match(/^event: (.+)$/m);
+      const dataMatch = block.match(/^data: (.+)$/m);
+      
+      if (eventMatch && dataMatch) {
+        const eventName = eventMatch[1].trim();
+        const dataStr = dataMatch[1].trim();
+        const data = JSON.parse(dataStr);
+
+        if (eventName === "sources") {
+          onSources(data);
+        } else if (eventName === "delta") {
+          onDelta(data.text);
+        } else if (eventName === "error") {
+          throw new Error(data.error);
+        } else if (eventName === "done") {
+          return;
+        }
+      }
+    }
+  }
+}
+
 // --- Document file URL (for PDF viewer) ---
 
 export function getDocumentFileUrl(docId: number): string {
-  return `${BASE}/api/v1/documents/${docId}/file`;
+  const key = getApiKey();
+  return `${BASE}/api/v1/documents/${docId}/file?api_key=${key}`;
 }
 
 // --- Rename ---

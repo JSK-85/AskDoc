@@ -14,9 +14,10 @@ Guidelines:
 def build_prompt(question: str, chunks: list[dict], summary: str | None = None) -> str:
     parts = [SYSTEM_PROMPT]
 
-    # Include the document-level summary for global context
+    # Include the document-level summary for global context (truncate to prevent overflow)
     if summary:
-        parts.append(f'\nDocument Overview:\n{summary}')
+        safe_summary = summary[:3000] + ('...' if len(summary) > 3000 else '')
+        parts.append(f'\nDocument Overview:\n{safe_summary}')
 
     # Include retrieved chunk passages for specific evidence
     context_parts = []

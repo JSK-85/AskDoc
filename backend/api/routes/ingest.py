@@ -3,6 +3,7 @@ import asyncio
 import os
 import re
 import uuid
+import hashlib
 
 import aiofiles
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
@@ -50,6 +51,19 @@ async def ingest(file: UploadFile = File(...),
         )
 
     file_type = ALLOWED_TYPES[file.content_type]
+    
+    # Check for deduplication using MD5 hash
+    file_hash = hashlib.md5(content).hexdigest()
+    result = await db.execute(select(Document).where(Document.md5_hash == file_hash))
+    existing_doc = result.scalars().first()
+    
+    if existing_doc:
+        return {
+            'doc_id': existing_doc.id,
+            'status': existing_doc.status,
+            'message': 'Document already exists, ingestion skipped.'
+        }
+
     safe_name = f'{uuid.uuid4()}.{file_type}'
     file_path = os.path.join(UPLOAD_DIR, safe_name)
 
@@ -57,7 +71,12 @@ async def ingest(file: UploadFile = File(...),
         await f.write(content)
 
     display_name = _sanitize_filename(file.filename or 'unnamed')
-    doc = Document(filename=display_name, status=DocStatus.PENDING, file_path=file_path)
+    doc = Document(
+        filename=display_name, 
+        status=DocStatus.PENDING, 
+        file_path=file_path,
+        md5_hash=file_hash
+    )
     db.add(doc)
     await db.commit()
     await db.refresh(doc)
@@ -72,7 +91,7 @@ async def ingest(file: UploadFile = File(...),
 
 
 @router.get('/status/{doc_id}')
-async def get_status(doc_id: int, db: AsyncSession = Depends(get_db)):
+async def get_status(doc_id: int, db: AsyncSession = Depends(get_db), _=Depends(verify_api_key)):
     doc = await db.get(Document, doc_id)
     if not doc:
         raise HTTPException(404, 'Document not found')
@@ -88,7 +107,8 @@ async def get_status(doc_id: int, db: AsyncSession = Depends(get_db)):
 async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _=Depends(verify_api_key)
 ):
     result = await db.execute(
         select(Document)
@@ -112,7 +132,7 @@ async def list_documents(
 # --- File serving ---
 
 @router.get('/documents/{doc_id}/file')
-async def get_document_file(doc_id: int, db: AsyncSession = Depends(get_db)):
+async def get_document_file(doc_id: int, db: AsyncSession = Depends(get_db), _=Depends(verify_api_key)):
     """Serve the original uploaded file for in-browser PDF viewing."""
     doc = await db.get(Document, doc_id)
     if not doc:

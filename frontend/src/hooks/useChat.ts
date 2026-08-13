@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { queryDocument } from "../lib/api";
+import { queryDocumentStream } from "../lib/api";
 import type { Message } from "../types";
 
 let _msgCounter = 0;
@@ -14,26 +14,42 @@ export function useChat(activeDocId: number | null) {
 
   const sendMessage = useCallback(
     async (question: string) => {
+      const userMsgId = nextId();
+      const assistantMsgId = nextId();
+      const startTime = Date.now();
+
       setMessages((prev) => [
         ...prev,
-        { id: nextId(), role: "user", content: question },
+        { id: userMsgId, role: "user", content: question },
+        { id: assistantMsgId, role: "assistant", content: "", latency_ms: 0 },
       ]);
       setLoading(true);
       setError(null);
+      
       try {
-        const res = await queryDocument(question, activeDocId ?? undefined);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: nextId(),
-            role: "assistant",
-            content: res.answer,
-            sources: res.sources,
-            latency_ms: res.latency_ms,
+        await queryDocumentStream(
+          question,
+          activeDocId ?? undefined,
+          (sources) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsgId ? { ...m, sources } : m
+              )
+            );
           },
-        ]);
+          (textDelta) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsgId
+                  ? { ...m, content: m.content + textDelta, latency_ms: Date.now() - startTime }
+                  : m
+              )
+            );
+          }
+        );
       } catch (e) {
         setError(e instanceof Error ? e.message : "Query failed");
+        setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
       } finally {
         setLoading(false);
       }

@@ -8,8 +8,9 @@ import redis.asyncio as aioredis
 logger = logging.getLogger(__name__)
 
 
-async def verify_api_key(x_api_key: str = Header(...)):
-    if x_api_key != os.getenv('API_KEY'):
+async def verify_api_key(request: Request, x_api_key: str | None = Header(None)):
+    key = x_api_key or request.query_params.get("api_key")
+    if key != os.getenv('API_KEY'):
         raise HTTPException(status_code=401, detail='Unauthorized')
 
 
