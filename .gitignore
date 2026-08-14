@@ -24,3 +24,8 @@ env/
 
 # Data and FAISS index
 backend/data/
+
+# Spec / planning documents
+RAG_Frontend_Spec_Lovable.docx
+RAG_Backend_Spec_Antigravity.txt
+RAG_Backend_Spec_Antigravity.docx
